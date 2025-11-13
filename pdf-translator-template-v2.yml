@@ -1,0 +1,335 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: PDF Translator Serverless Architecture - 417404104136-v2
+
+Resources:
+  # === S3 Buckets ===
+  CodeArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: pdftranslator-code-demo-v2
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  PDFUploadsBucket:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - PDFUploadPermission
+      - PDFExtractorFunction
+    Properties:
+      BucketName: pdf-uploads-417404104136-v2
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - "https://d1d3fusiyjat60.cloudfront.net"
+              - "http://localhost:3000"
+            AllowedMethods: [GET, PUT, POST, HEAD]
+            AllowedHeaders: ["*"]
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt PDFExtractorFunction.Arn
+
+  PDFUploadPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PDFExtractorFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+
+  PDFTranslationsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pdf-translations-417404104136-v2
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - "https://d1d3fusiyjat60.cloudfront.net"
+            AllowedMethods: [GET]
+            AllowedHeaders: ["*"]
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # === DynamoDB ===
+  TranslationStatusTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TranslationStatus-417404104136-v2
+      AttributeDefinitions:
+        - AttributeName: request_ID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: request_ID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # === SQS ===
+  PDFExtractionQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: PDFExtractionQueue-DLQ-417404104136-v2
+
+  PDFExtractionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: PDFExtractionQueue-417404104136-v2
+      VisibilityTimeout: 120
+      RedrivePolicy:
+        maxReceiveCount: 5
+        deadLetterTargetArn: !GetAtt PDFExtractionQueueDLQ.Arn
+
+  # === IAM Role ===
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: lambda-exec-role-417404104136-v2
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaBasicExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - s3:*
+                  - dynamodb:*
+                  - sqs:*
+                  - translate:*
+                Resource: "*"
+
+  # === Lambda Functions ===
+  GenerateUploadURLFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: generate-upload-url-417404104136-v2
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: pdftranslator-code-demo
+        S3Key: lambda/GenerateUploadURL.zip
+      Runtime: python3.9
+      Timeout: 30
+      Environment:
+        Variables:
+          UPLOAD_BUCKET: !Ref PDFUploadsBucket
+          TABLE_NAME: !Ref TranslationStatusTable
+
+  PDFExtractorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: pdf-extractor-417404104136-v2
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: pdftranslator-code-demo
+        S3Key: lambda/PDFExtractor.zip
+      Runtime: python3.9
+      Timeout: 60
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TranslationStatusTable
+          QUEUE_URL: !Ref PDFExtractionQueue
+
+  StatusCheckerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: status-checker-417404104136-v2
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: pdftranslator-code-demo
+        S3Key: lambda/StatusChecker.zip
+      Runtime: python3.9
+      Timeout: 30
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TranslationStatusTable
+
+  TextTranslatorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: text-translator-417404104136-v2
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: pdftranslator-code-demo
+        S3Key: lambda/TextTranslator.zip
+      Runtime: python3.9
+      Timeout: 60
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref PDFTranslationsBucket
+          TABLE_NAME: !Ref TranslationStatusTable
+
+  TextTranslatorEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      EventSourceArn: !GetAtt PDFExtractionQueue.Arn
+      FunctionName: !Ref TextTranslatorFunction
+      Enabled: true
+
+  # === API Gateway ===
+  PDFTranslatorAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: PDFTranslatorAPI-417404104136-v2
+      EndpointConfiguration:
+        Types: [REGIONAL]
+      BinaryMediaTypes: ["application/pdf"]
+
+  GenerateResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt PDFTranslatorAPI.RootResourceId
+      PathPart: generate
+      RestApiId: !Ref PDFTranslatorAPI
+
+  StatusResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt PDFTranslatorAPI.RootResourceId
+      PathPart: status
+      RestApiId: !Ref PDFTranslatorAPI
+
+  TranslateResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt PDFTranslatorAPI.RootResourceId
+      PathPart: translate
+      RestApiId: !Ref PDFTranslatorAPI
+
+  GenerateMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PDFTranslatorAPI
+      ResourceId: !Ref GenerateResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GenerateUploadURLFunction.Arn}/invocations
+
+  StatusMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PDFTranslatorAPI
+      ResourceId: !Ref StatusResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StatusCheckerFunction.Arn}/invocations
+
+  StatusOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PDFTranslatorAPI
+      ResourceId: !Ref StatusResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: '{}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  TranslateMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PDFTranslatorAPI
+      ResourceId: !Ref TranslateResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TextTranslatorFunction.Arn}/invocations
+
+  PDFTranslatorDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref PDFTranslatorAPI
+      StageName: prod
+    DependsOn:
+      - GenerateMethod
+      - StatusMethod
+      - TranslateMethod
+      - StatusOptionsMethod
+
+  # === API Permissions ===
+  GeneratePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GenerateUploadURLFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  StatusPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StatusCheckerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  TranslatePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TextTranslatorFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+Outputs:
+  APIEndpointGenerate:
+    Value: !Sub "https://${PDFTranslatorAPI}.execute-api.${AWS::Region}.amazonaws.com/prod/generate"
+  APIEndpointStatus:
+    Value: !Sub "https://${PDFTranslatorAPI}.execute-api.${AWS::Region}.amazonaws.com/prod/status"
+  APIEndpointTranslate:
+    Value: !Sub "https://${PDFTranslatorAPI}.execute-api.${AWS::Region}.amazonaws.com/prod/translate"
