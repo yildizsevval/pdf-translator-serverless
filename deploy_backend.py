@@ -6,7 +6,7 @@ import boto3
 # CONFIGURATION
 # ===============================
 REGION = "eu-west-3"
-S3_BUCKET = "pdftranslator-code-demo-v2"
+S3_BUCKET = "pdftranslator-code-demo"
 STACK_NAME = "pdf-translator-stack-v2"
 TEMPLATE_FILE = os.path.join(os.path.dirname(__file__), "pdf-translator-template-v2.yml")
 ARTIFACTS_DIR = os.path.join(os.path.dirname(__file__), "artifacts")
