@@ -329,7 +329,7 @@ Resources:
   StatusPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref StatusCheckerFunctionProdAlias
+      FunctionName: !GetAtt StatusCheckerFunctionProdAlias
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
 
