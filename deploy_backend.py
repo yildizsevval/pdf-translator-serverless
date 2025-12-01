@@ -22,8 +22,8 @@ ZIP_TO_S3KEY = {
 # ===============================
 # 1 Run bundle_lambdas.py
 # ===============================
-print("🧩 Bundling all Lambda functions...")
-subprocess.run(["python", "bundle_lambdas.py"], check=True)
+# print("🧩 Bundling all Lambda functions...")
+# subprocess.run(["python", "bundle_lambdas.py"], check=True)
 
 
 # ===============================
