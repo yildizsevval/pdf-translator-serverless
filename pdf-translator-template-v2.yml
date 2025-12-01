@@ -177,6 +177,20 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TranslationStatusTable
 
+  # === Lambda Versioning for StatusChecker ===
+  StatusCheckerFunctionVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref StatusCheckerFunction
+      Description: "Auto-published version for StatusChecker"
+
+  StatusCheckerFunctionProdAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      Name: prod
+      FunctionName: !Ref StatusCheckerFunction
+      FunctionVersion: !GetAtt StatusCheckerFunctionVersion.Version
+
   TextTranslatorFunction:
     Type: AWS::Lambda::Function
     Properties:
