@@ -267,7 +267,7 @@ Resources:
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StatusCheckerFunctionProdAlias.Arn}/invocations
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StatusCheckerFunctionProdAlias}/invocations
 
   StatusOptionsMethod:
     Type: AWS::ApiGateway::Method
@@ -329,7 +329,7 @@ Resources:
   StatusPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt StatusCheckerFunctionProdAlias.Arn
+      FunctionName: !Ref StatusCheckerFunctionProdAlias
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
 
