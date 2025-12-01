@@ -27,3 +27,23 @@ jobs:
 
       - name: Run setup script
         run: ./setup.sh
+
+      - name: Publish Lambda version (StatusCheckerFunction)
+        id: publish_status_version
+        run: |
+          VERSION=$(aws lambda publish-version \
+            --function-name status-checker-417404104136-v2 \
+            --region eu-west-3 \
+            --query 'Version' \
+            --output text)
+          echo "Published version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update prod alias (StatusCheckerFunction)
+        run: |
+          aws lambda update-alias \
+            --function-name status-checker-417404104136-v2 \
+            --name prod \
+            --region eu-west-3 \
+            --function-version "${{ steps.publish_status_version.outputs.version }}"
+        
