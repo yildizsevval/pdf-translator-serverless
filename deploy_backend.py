@@ -18,7 +18,9 @@ ZIP_TO_S3KEY = {
     "text_translator.zip": "lambda/TextTranslator.zip",
     "status_checker.zip": "lambda/StatusChecker.zip"
 }
-
+ZIP_TO_FUNCTION = {
+    "status_checker.zip": "status-checker-417404104136-v2",
+}
 # ===============================
 # 1 Run bundle_lambdas.py
 # ===============================
@@ -53,5 +55,16 @@ for file in os.listdir(ARTIFACTS_DIR):
         s3_key = ZIP_TO_S3KEY[file]
         print(f"Uploading {file} → s3://{S3_BUCKET}/{s3_key}")
         s3.upload_file(file_path, S3_BUCKET, s3_key)
+
+        if file in ZIP_TO_FUNCTION:
+            function_name = ZIP_TO_FUNCTION[file]
+            print(f"Updating Lambda function code for {function_name}...")
+            subprocess.run([
+                "aws", "lambda", "update-function-code",
+                "--function-name", function_name,
+                "--s3-bucket", S3_BUCKET,
+                "--s3-key", s3_key,
+                "--region", REGION
+            ], check=True)
 
 print("All artifacts uploaded successfully.")
