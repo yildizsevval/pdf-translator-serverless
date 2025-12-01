@@ -29,11 +29,11 @@ def lambda_handler(event, context):
 
         request_id = context.aws_request_id
 
-        # ✅ DOĞRU parametrelerle presigned URL oluştur
+        # presigned URL with parameters
         url = s3.generate_presigned_url(
             'put_object',
             Params={'Bucket': bucket_name, 'Key': request_id},
-            ExpiresIn=3600
+            ExpiresIn=432000 
         )
 
         # Sadece gerekirse değiştir
