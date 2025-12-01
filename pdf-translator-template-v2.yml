@@ -42,6 +42,12 @@ Resources:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
             Function: !GetAtt PDFExtractorFunction.Arn
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteUploadsAfter15Days
+            Status: Enabled
+            Prefix: ""          # all object
+            ExpirationInDays: 15
 
   PDFUploadPermission:
     Type: AWS::Lambda::Permission
@@ -69,6 +75,12 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteTranslationsAfter15Days
+            Status: Enabled
+            Prefix: ""
+            ExpirationInDays: 15
 
   # === DynamoDB ===
   TranslationStatusTable:
