@@ -5,7 +5,7 @@ import os
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-# versioning check comment
+# versioning check comment2
 def lambda_handler(event, context):
     logger.info("GetStatus function invoked")
     logger.info(f"Event: {json.dumps(event)}")
