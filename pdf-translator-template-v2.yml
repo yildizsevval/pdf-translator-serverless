@@ -189,20 +189,6 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TranslationStatusTable
 
-  # === Lambda Versioning for StatusChecker ===
-  StatusCheckerFunctionVersion:
-    Type: AWS::Lambda::Version
-    Properties:
-      FunctionName: !Ref StatusCheckerFunction
-      Description: "Auto-published version for StatusChecker"
-
-  StatusCheckerFunctionProdAlias:
-    Type: AWS::Lambda::Alias
-    Properties:
-      Name: prod
-      FunctionName: !Ref StatusCheckerFunction
-      FunctionVersion: !GetAtt StatusCheckerFunctionVersion.Version
-
   TextTranslatorFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -279,7 +265,7 @@ Resources:
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StatusCheckerFunctionProdAlias}/invocations
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StatusCheckerFunction.Arn}/invocations
 
   StatusOptionsMethod:
     Type: AWS::ApiGateway::Method
@@ -341,7 +327,7 @@ Resources:
   StatusPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref StatusCheckerFunctionProdAlias
+      FunctionName: !Ref StatusCheckerFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
 
