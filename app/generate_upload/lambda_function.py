@@ -20,8 +20,8 @@ def lambda_handler(event, context):
         )
         dynamodb = boto3.client('dynamodb', region_name='eu-west-3')
 
-        bucket_name = os.environ.get('UPLOAD_BUCKET', 'pdf-uploads-417404104136-cf')
-        table_name = os.environ.get('TABLE_NAME', 'TranslationStatus-417404104136-cf')
+        bucket_name = os.environ.get('UPLOAD_BUCKET', 'pdf-uploads-417404104136-v2')
+        table_name = os.environ.get('TABLE_NAME', 'TranslationStatus-417404104136-v2')
 
         params = event.get('queryStringParameters') or {}
         from_lang = params.get('fromLang', 'unknown')

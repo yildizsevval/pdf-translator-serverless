@@ -15,8 +15,8 @@ def lambda_handler(event, context):
         s3 = boto3.client('s3')
         dynamodb = boto3.resource('dynamodb')
 
-        table_name = os.environ.get('TABLE_NAME', 'TranslationStatus-417404104136-cf')
-        bucket_name = os.environ.get('BUCKET_NAME', 'pdf-translations-417404104136-cf')
+        table_name = os.environ.get('TABLE_NAME', 'TranslationStatus-417404104136-v2')
+        bucket_name = os.environ.get('BUCKET_NAME', 'pdf-translations-417404104136-v2')
 
         record = event['Records'][0]
         message = json.loads(record['body'])

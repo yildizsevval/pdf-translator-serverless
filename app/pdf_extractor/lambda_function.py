@@ -31,7 +31,7 @@ def lambda_handler(event, context):
         logger.info("PDF downloaded successfully")
 
         # 2. Extract text with error handling for invalid PDFs
-        table_name = os.environ.get('TABLE_NAME', 'TranslationStatus-417404104136-cf')
+        table_name = os.environ.get('TABLE_NAME', 'TranslationStatus-417404104136-v2')
         table = dynamodb.Table(table_name)
 
         try:

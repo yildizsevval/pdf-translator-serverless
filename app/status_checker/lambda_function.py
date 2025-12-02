@@ -23,7 +23,7 @@ def lambda_handler(event, context):
 
 
         # DynamoDB erişimi
-        table_name = os.environ.get("TABLE_NAME", "TranslationStatus-417404104136-cf")
+        table_name = os.environ.get("TABLE_NAME", "TranslationStatus-417404104136-v2")
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table(table_name)
 
