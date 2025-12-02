@@ -33,7 +33,7 @@ def lambda_handler(event, context):
         url = s3.generate_presigned_url(
             'put_object',
             Params={'Bucket': bucket_name, 'Key': request_id},
-            ExpiresIn=432000 
+            ExpiresIn=432000
         )
 
         # Sadece gerekirse değiştir
