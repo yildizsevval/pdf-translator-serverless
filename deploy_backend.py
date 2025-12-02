@@ -19,9 +19,11 @@ ZIP_TO_S3KEY = {
     "status_checker.zip": "lambda/StatusChecker.zip"
 }
 ZIP_TO_FUNCTION = {
+    "generate_upload.zip": "generate-upload-url-417404104136-v2",
+    "pdf_extractor.zip": "pdf-extractor-417404104136-v2",
+    "text_translator.zip": "text-translator-417404104136-v2",
     "status_checker.zip": "status-checker-417404104136-v2",
-}
-# ===============================
+}# ===============================
 # 1 Run bundle_lambdas.py
 # ===============================
 # print("🧩 Bundling all Lambda functions...")
